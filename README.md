@@ -3,32 +3,48 @@ Machine learning REST API that predicts used car prices using Python, Scikit-lea
 
 # Used Car Price Prediction API
 
-## Project Overview
+## 1. Project Overview
 
-This project is a Machine Learning REST API that predicts the estimated price of a used car based on its details.
+This project is a machine learning-powered REST API that predicts the estimated selling price of a used car based on its features. The project combines a tabular machine learning model with FastAPI to provide predictions through a REST API. The main goal is to learn how to build and serve a machine learning model as a reliable API service.
 
-## ML Problem
+## 2. ML Problem
 
-* **Problem:** Used Car Price Prediction
-* **Type:** Supervised Learning
-* **Task:** Regression
-* **Target:** Selling Price
+**Problem:** Used Car Price Prediction
 
-## Dataset
+**Machine Learning Type:** Supervised Learning
 
-The project uses a tabular used-car dataset containing features such as:
+**ML Task:** Regression
 
-* Year
+The model will learn the relationship between used-car features and their selling prices. Given the details of a used car, the model will predict its estimated selling price.
+
+## 3. Dataset
+
+The project will use a tabular used-car dataset containing information such as:
+
+* Manufacturing year
 * Kilometers driven
 * Fuel type
-* Transmission
-* Owner
+* Transmission type
+* Number of previous owners
+* Selling price
 
-The model uses these features to predict the car's selling price.
+The target variable is the **selling price** of the used car.
 
-## API Contract
+## 4. Model
 
-The `/predict` endpoint accepts used-car details and returns the estimated selling price.
+The project will use a regression model from **Scikit-learn and/or XGBoost**.
+
+The model will be trained using the selected used-car dataset and evaluated using appropriate regression metrics such as MAE, RMSE, and R².
+
+The initial focus is not on building a highly complex model. The main goal is to understand how a machine learning model can be integrated into a production-style API.
+
+## 5. API Contract
+
+The `/predict` endpoint will accept used-car information such as the manufacturing year, kilometers driven, fuel type, transmission type, and ownership information.
+
+The API will validate the received input using Pydantic. Valid data will then be passed through the required preprocessing steps and sent to the trained machine learning model.
+
+The model will return an estimated used-car selling price, which the API will return to the client as a JSON response.
 
 ### Example Request
 
@@ -50,27 +66,44 @@ The `/predict` endpoint accepts used-car details and returns the estimated selli
 }
 ```
 
-## API Flow
+## 6. REST API
+
+The main MVP endpoint will be:
+
+| Method | Endpoint   | Purpose                                   |
+| ------ | ---------- | ----------------------------------------- |
+| POST   | `/predict` | Predict the estimated price of a used car |
+
+A successful prediction will return HTTP status code `200`.
+
+Invalid request data will be rejected through Pydantic/FastAPI validation.
+
+## 7. Request Flow
 
 ```text
 Client
-   ↓
-POST /predict
+   |
+   | POST /predict
    ↓
 FastAPI
+   |
    ↓
 Pydantic Validation
+   |
    ↓
 Data Preprocessing
+   |
    ↓
-ML Model
+Trained ML Model
+   |
    ↓
-Predicted Price
+Predicted Car Price
+   |
    ↓
 JSON Response
 ```
 
-## Technology Stack
+## 8. Technology Stack
 
 * Python
 * FastAPI
@@ -84,19 +117,64 @@ JSON Response
 * Git
 * GitHub
 
-## MVP Scope
+## 9. MVP Scope
 
-The first version will focus on:
+The first version of the project will focus only on:
 
 1. Preparing the used-car dataset
 2. Training a regression model
 3. Saving the trained model
-4. Creating the FastAPI `/predict` endpoint
-5. Validating input using Pydantic
-6. Returning the predicted price
+4. Creating a FastAPI application
+5. Creating the `/predict` endpoint
+6. Validating request data using Pydantic
+7. Returning the predicted car price
 
-Advanced features such as authentication, frontend, payments, and user accounts are outside the initial MVP scope.
+Advanced features such as authentication, databases, frontend applications, model retraining pipelines, and cloud deployment are outside the initial MVP scope.
 
-## Project Goal
+## 10. Project Architecture
 
-The goal is to build a simple, reliable, and testable Machine Learning API that can predict used-car prices.
+```text
+                Used Car Dataset
+                       |
+                       ↓
+               Data Preprocessing
+                       |
+                       ↓
+                ML Model Training
+                       |
+                       ↓
+                 Trained Model
+                       |
+                       ↓
+Client → FastAPI → Pydantic → Prediction → JSON Response
+                       |
+             ┌─────────┴─────────┐
+             ↓                   ↓
+        Structured           Prometheus
+         Logging              Metrics
+
+Docker packages the application.
+Pytest tests the application.
+Git/GitHub manages the source code.
+```
+
+## 11. Future Tasks
+
+The project will be developed incrementally:
+
+* Task 1: Project understanding and architecture planning
+* Task 2: Project folder structure and Python environment
+* Dataset preparation and exploratory analysis
+* Model training and evaluation
+* FastAPI implementation
+* Pydantic validation
+* API testing with Pytest
+* Dockerization
+* Structured logging
+* Prometheus monitoring
+* GitHub documentation and version control
+
+## 12. Goal
+
+The goal of this project is to demonstrate how a machine learning model can be transformed into a usable, testable, monitorable, and containerized REST API service.
+
