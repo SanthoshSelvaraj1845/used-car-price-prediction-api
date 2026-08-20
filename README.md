@@ -21,12 +21,13 @@ The model will learn the relationship between used-car features and their sellin
 
 The project will use a tabular used-car dataset containing information such as:
 
-* Manufacturing year
-* Kilometers driven
-* Fuel type
-* Transmission type
-* Number of previous owners
-* Selling price
+- name
+- year
+- km_driven
+- fuel
+- seller_type
+- transmission
+- owner
 
 The target variable is the **selling price** of the used car.
 
@@ -50,9 +51,11 @@ The model will return an estimated used-car selling price, which the API will re
 
 ```json
 {
+  "name": "Maruti Swift VXI",
   "year": 2020,
   "km_driven": 45000,
   "fuel": "Diesel",
+  "seller_type": "Dealer",
   "transmission": "Manual",
   "owner": "First Owner"
 }
@@ -105,17 +108,19 @@ JSON Response
 
 ## 8. Technology Stack
 
-* Python
-* FastAPI
-* Pydantic
-* Scikit-learn / XGBoost
-* Uvicorn
-* Docker
-* Pytest
-* Prometheus
-* Structured Logging
-* Git
-* GitHub
+Python
+FastAPI
+Pydantic
+Pandas
+Scikit-learn
+Joblib
+Uvicorn
+Docker
+Pytest
+Prometheus
+Structured Logging
+Git
+GitHub
 
 ## 9. MVP Scope
 
@@ -162,8 +167,8 @@ Git/GitHub manages the source code.
 
 The project will be developed incrementally:
 
-* Task 1: Project understanding and architecture planning
-* Task 2: Project folder structure and Python environment
+* Project understanding and architecture planning
+* Project folder structure and Python environment
 * Dataset preparation and exploratory analysis
 * Model training and evaluation
 * FastAPI implementation
