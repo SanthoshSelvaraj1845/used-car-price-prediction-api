@@ -9,7 +9,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
 
-# 1. Load dataset
+# Load dataset
 df = pd.read_csv("data/used_cars.csv")
 
 print("Dataset shape:", df.shape)
@@ -20,7 +20,7 @@ print("\nFirst 5 rows:")
 print(df.head())
 
 
-# 2. Select features and target
+# Select features and target
 features = [
     "name",
     "year",
@@ -37,7 +37,7 @@ X = df[features]
 y = df[target]
 
 
-# 3. Train/test split
+# Train/test split
 X_train, X_test, y_train, y_test = train_test_split(
     X,
     y,
@@ -46,14 +46,14 @@ X_train, X_test, y_train, y_test = train_test_split(
 )
 
 
-# 4. Define numerical features
+# Define numerical features
 numeric_features = [
     "year",
     "km_driven"
 ]
 
 
-# 5. Define categorical features
+# Define categorical features
 categorical_features = [
     "name",
     "fuel",
@@ -63,7 +63,7 @@ categorical_features = [
 ]
 
 
-# 6. Create preprocessing pipeline
+# Create preprocessing pipeline
 preprocessor = ColumnTransformer(
     transformers=[
         (
@@ -80,7 +80,7 @@ preprocessor = ColumnTransformer(
 )
 
 
-# 7. Create complete ML pipeline
+# Create complete ML pipeline
 model = Pipeline(
     steps=[
         (
@@ -98,7 +98,7 @@ model = Pipeline(
 )
 
 
-# 8. Train model
+# Train model
 print("\nTraining model...")
 
 model.fit(X_train, y_train)
@@ -106,7 +106,7 @@ model.fit(X_train, y_train)
 print("Training completed.")
 
 
-# 9. Make predictions
+# Make predictions
 predictions = model.predict(X_test)
 
 
@@ -129,7 +129,7 @@ r2 = r2_score(
 )
 
 
-# 11. Print metrics
+# Print metrics
 print("\nModel Evaluation")
 print("----------------")
 
@@ -138,7 +138,7 @@ print("RMSE:", rmse)
 print("R2 Score:", r2)
 
 
-# 12. Save complete pipeline
+#Save complete pipeline
 model_path = "ml/saved_model/model.joblib"
 
 joblib.dump(
