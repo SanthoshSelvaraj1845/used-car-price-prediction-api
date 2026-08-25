@@ -4,6 +4,8 @@ import joblib
 import pandas as pd
 from fastapi import FastAPI
 
+from app.models.schemas import PredictionInput
+
 
 # Store the loaded model
 model = None
@@ -23,7 +25,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-# Create FastAPI app
+# Create FastAPI application
 app = FastAPI(
     lifespan=lifespan
 )
@@ -39,23 +41,15 @@ def root():
 
 # Prediction endpoint
 @app.post("/predict")
-def predict():
+def predict(car: PredictionInput):
 
-    # Car details
-    car = pd.DataFrame([
-        {
-            "name": "Maruti Swift VXI",
-            "year": 2020,
-            "km_driven": 45000,
-            "fuel": "Diesel",
-            "seller_type": "Dealer",
-            "transmission": "Manual",
-            "owner": "First Owner"
-        }
+    # Convert validated Pydantic data into DataFrame
+    input_df = pd.DataFrame([
+        car.model_dump()
     ])
 
     # Make prediction
-    prediction = model.predict(car)
+    prediction = model.predict(input_df)
 
     # Return prediction
     return {
