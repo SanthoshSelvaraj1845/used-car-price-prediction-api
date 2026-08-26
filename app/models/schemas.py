@@ -46,3 +46,10 @@ class PredictionInput(BaseModel):
         min_length=1,
         description="Owner type"
     )
+
+
+class PredictionOutput(BaseModel):
+    request_id: str
+    prediction: float
+    confidence_score: float | None = None
+    model_version: str

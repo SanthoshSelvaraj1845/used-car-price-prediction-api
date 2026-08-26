@@ -3,16 +3,17 @@ import uuid
 
 import joblib
 import pandas as pd
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
 
-from app.models.schemas import PredictionInput
+from app.models.schemas import PredictionInput, PredictionOutput
 
 
-# Store the loaded model
+# Store loaded model
 model = None
 
 
-# Load model when FastAPI starts
+# Load model once when application starts
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global model
@@ -35,6 +36,21 @@ app = FastAPI(
 )
 
 
+# Custom ValueError handler
+@app.exception_handler(ValueError)
+async def value_error_handler(
+    request: Request,
+    exc: ValueError
+):
+    return JSONResponse(
+        status_code=400,
+        content={
+            "error": "Invalid value",
+            "message": str(exc)
+        }
+    )
+
+
 # Root endpoint
 @app.get("/")
 def root():
@@ -43,7 +59,7 @@ def root():
     }
 
 
-# Health check endpoint
+# Health endpoint
 @app.get("/health")
 def health():
 
@@ -54,25 +70,42 @@ def health():
 
 
 # Prediction endpoint
-@app.post("/predict")
+@app.post(
+    "/predict",
+    response_model=PredictionOutput
+)
 def predict_car_price(car: PredictionInput):
 
-    # Create a request ID
     request_id = str(uuid.uuid4())
 
-    # Convert validated Pydantic data to DataFrame
-    input_df = pd.DataFrame([
-        car.model_dump()
-    ])
+    try:
 
-    # Make prediction
-    prediction = model.predict(input_df)
+        # Convert Pydantic input to DataFrame
+        input_df = pd.DataFrame([
+            car.model_dump()
+        ])
 
-    # RandomForestRegressor does not support predict_proba
-    confidence_score = None
+        # Make ML prediction
+        prediction = model.predict(input_df)
 
-    return {
-        "request_id": request_id,
-        "prediction": float(prediction[0]),
-        "confidence_score": confidence_score
-    }
+        # Return validated response
+        return PredictionOutput(
+            request_id=request_id,
+            prediction=float(prediction[0]),
+            confidence_score=None,
+            model_version="1.0.0"
+        )
+
+    except Exception as e:
+
+        # Internal error information
+        print(
+            f"Prediction failed for request "
+            f"{request_id}: {e}"
+        )
+
+        # Safe error for client
+        raise HTTPException(
+            status_code=500,
+            detail="Prediction failed"
+        )
