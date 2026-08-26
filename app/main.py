@@ -1,33 +1,36 @@
 from contextlib import asynccontextmanager
+import time
 import uuid
 
 import joblib
 import pandas as pd
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 
 from app.models.schemas import PredictionInput, PredictionOutput
+from app.logging_config import setup_logger
 
 
-# Store loaded model
+logger = setup_logger()
+
 model = None
 
 
-# Load model once when application starts
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+
     global model
 
     model = joblib.load(
         "ml/saved_model/model.joblib"
     )
 
-    print("ML model loaded successfully")
+    logger.info("ML model loaded successfully")
 
     yield
 
 
-# Create FastAPI application
 app = FastAPI(
     title="Used Car Price Prediction API",
     description="API for predicting used car prices using Machine Learning",
@@ -36,12 +39,68 @@ app = FastAPI(
 )
 
 
-# Custom ValueError handler
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+
+    request_id = str(uuid.uuid4())
+
+    request.state.request_id = request_id
+
+    start_time = time.perf_counter()
+
+    logger.info(
+        f"Request started | "
+        f"request_id={request_id} | "
+        f"method={request.method} | "
+        f"path={request.url.path}"
+    )
+
+    try:
+
+        response = await call_next(request)
+
+        duration = time.perf_counter() - start_time
+
+        logger.info(
+            f"Request completed | "
+            f"request_id={request_id} | "
+            f"method={request.method} | "
+            f"path={request.url.path} | "
+            f"status_code={response.status_code} | "
+            f"duration={duration:.4f}s"
+        )
+
+        response.headers["X-Request-ID"] = request_id
+
+        return response
+
+    except Exception:
+
+        duration = time.perf_counter() - start_time
+
+        logger.exception(
+            f"Request failed | "
+            f"request_id={request_id} | "
+            f"method={request.method} | "
+            f"path={request.url.path} | "
+            f"duration={duration:.4f}s"
+        )
+
+        raise
+
+
 @app.exception_handler(ValueError)
 async def value_error_handler(
     request: Request,
     exc: ValueError
 ):
+
+    logger.error(
+        f"ValueError | "
+        f"request_id={getattr(request.state, 'request_id', 'unknown')} | "
+        f"error={exc}"
+    )
+
     return JSONResponse(
         status_code=400,
         content={
@@ -51,17 +110,18 @@ async def value_error_handler(
     )
 
 
-# Root endpoint
 @app.get("/")
 def root():
+
     return {
         "message": "ML API is alive"
     }
 
 
-# Health endpoint
 @app.get("/health")
 def health():
+
+    logger.info("Health check requested")
 
     return {
         "status": "ok",
@@ -69,42 +129,48 @@ def health():
     }
 
 
-# Prediction endpoint
 @app.post(
     "/predict",
     response_model=PredictionOutput
 )
-def predict_car_price(car: PredictionInput):
+def predict_car_price(
+    car: PredictionInput,
+    request: Request
+):
 
-    request_id = str(uuid.uuid4())
+    request_id = request.state.request_id
 
     try:
 
-        # Convert Pydantic input to DataFrame
         input_df = pd.DataFrame([
             car.model_dump()
         ])
 
-        # Make ML prediction
         prediction = model.predict(input_df)
 
-        # Return validated response
+        predicted_price = float(prediction[0])
+
+        logger.info(
+            f"Prediction successful | "
+            f"request_id={request_id} | "
+            f"prediction={predicted_price}"
+        )
+
         return PredictionOutput(
             request_id=request_id,
-            prediction=float(prediction[0]),
+            prediction=predicted_price,
             confidence_score=None,
             model_version="1.0.0"
         )
 
     except Exception as e:
 
-        # Internal error information
-        print(
-            f"Prediction failed for request "
-            f"{request_id}: {e}"
+        logger.exception(
+            f"Prediction failed | "
+            f"request_id={request_id} | "
+            f"error={e}"
         )
 
-        # Safe error for client
         raise HTTPException(
             status_code=500,
             detail="Prediction failed"
