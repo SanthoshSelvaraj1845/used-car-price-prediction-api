@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+import uuid
 
 import joblib
 import pandas as pd
@@ -27,11 +28,14 @@ async def lifespan(app: FastAPI):
 
 # Create FastAPI application
 app = FastAPI(
+    title="Used Car Price Prediction API",
+    description="API for predicting used car prices using Machine Learning",
+    version="1.0.0",
     lifespan=lifespan
 )
 
 
-# Home endpoint
+# Root endpoint
 @app.get("/")
 def root():
     return {
@@ -39,11 +43,24 @@ def root():
     }
 
 
+# Health check endpoint
+@app.get("/health")
+def health():
+
+    return {
+        "status": "ok",
+        "model_loaded": model is not None
+    }
+
+
 # Prediction endpoint
 @app.post("/predict")
-def predict(car: PredictionInput):
+def predict_car_price(car: PredictionInput):
 
-    # Convert validated Pydantic data into DataFrame
+    # Create a request ID
+    request_id = str(uuid.uuid4())
+
+    # Convert validated Pydantic data to DataFrame
     input_df = pd.DataFrame([
         car.model_dump()
     ])
@@ -51,7 +68,11 @@ def predict(car: PredictionInput):
     # Make prediction
     prediction = model.predict(input_df)
 
-    # Return prediction
+    # RandomForestRegressor does not support predict_proba
+    confidence_score = None
+
     return {
-        "predicted_price": float(prediction[0])
+        "request_id": request_id,
+        "prediction": float(prediction[0]),
+        "confidence_score": confidence_score
     }
