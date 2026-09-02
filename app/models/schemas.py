@@ -1,55 +1,55 @@
+from typing import List
+
 from pydantic import BaseModel, Field
 
 
-class PredictionInput(BaseModel):
+# Single Prediction Input
 
-    name: str = Field(
-        ...,
-        min_length=1,
-        max_length=100,
-        description="Car name"
-    )
+
+class PredictionInput(BaseModel):
+    name: str
 
     year: int = Field(
         ...,
-        ge=1900,
-        le=2026,
-        description="Manufacturing year"
+        gt=1900
     )
 
-    km_driven: int = Field(
+    km_driven: float = Field(
         ...,
-        ge=0,
-        description="Kilometers driven"
+        ge=0
     )
 
-    fuel: str = Field(
-        ...,
-        min_length=1,
-        description="Fuel type"
-    )
+    fuel: str
 
-    seller_type: str = Field(
-        ...,
-        min_length=1,
-        description="Seller type"
-    )
+    seller_type: str
 
-    transmission: str = Field(
-        ...,
-        min_length=1,
-        description="Transmission type"
-    )
+    transmission: str
 
-    owner: str = Field(
-        ...,
-        min_length=1,
-        description="Owner type"
-    )
+    owner: str
 
+
+# Single Prediction Output
 
 class PredictionOutput(BaseModel):
     request_id: str
+
     prediction: float
+
     confidence_score: float | None = None
+
     model_version: str
+
+# Batch Prediction Input
+
+class PredictionBatchInput(BaseModel):
+    cars: List[PredictionInput] = Field(
+        ...,
+        min_length=1,
+        max_length=100
+    )
+
+# Batch Prediction Output
+
+
+class PredictionBatchOutput(BaseModel):
+    predictions: List[PredictionOutput]

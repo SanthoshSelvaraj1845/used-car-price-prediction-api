@@ -1,21 +1,27 @@
-from contextlib import asynccontextmanager
 import time
 import uuid
 
 import joblib
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from app.logging_config import setup_logger
+
 from app.routers.v1 import router as v1_router
 
+# Logger
 
 logger = setup_logger()
 
+# Lifespan
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+
+    # Load ML model once when application starts
 
     model = joblib.load(
         "ml/saved_model/model.joblib"
@@ -23,28 +29,48 @@ async def lifespan(app: FastAPI):
 
     app.state.model = model
 
-    logger.info("ML model loaded successfully")
+    logger.info(
+        "ML model loaded successfully"
+    )
 
     yield
 
+    logger.info(
+        "Application shutting down"
+    )
+
+# FastAPI Application
 
 app = FastAPI(
     title="Used Car Price Prediction API",
-    description="API for predicting used car prices using Machine Learning",
+    description="ML API for predicting used car prices",
     version="1.0.0",
     lifespan=lifespan
 )
 
+# Include Version 1 Router
 
-app.include_router(v1_router)
+app.include_router(
+    v1_router
+)
 
+# Request Logging Middleware
 
 @app.middleware("http")
-async def log_requests(request: Request, call_next):
+async def request_logging_middleware(
+    request: Request,
+    call_next
+):
 
-    request_id = str(uuid.uuid4())
+    # Create request ID
+
+    request_id = str(
+        uuid.uuid4()
+    )
 
     request.state.request_id = request_id
+
+    # Start timer
 
     start_time = time.perf_counter()
 
@@ -57,37 +83,47 @@ async def log_requests(request: Request, call_next):
 
     try:
 
-        response = await call_next(request)
+        response = await call_next(
+            request
+        )
 
-        duration = time.perf_counter() - start_time
+        duration = (
+            time.perf_counter()
+            - start_time
+        )
 
         logger.info(
             f"Request completed | "
             f"request_id={request_id} | "
-            f"method={request.method} | "
-            f"path={request.url.path} | "
             f"status_code={response.status_code} | "
             f"duration={duration:.4f}s"
         )
 
-        response.headers["X-Request-ID"] = request_id
+        response.headers[
+            "X-Request-ID"
+        ] = request_id
 
         return response
 
-    except Exception:
+    except Exception as e:
 
-        duration = time.perf_counter() - start_time
+        duration = (
+            time.perf_counter()
+            - start_time
+        )
 
         logger.exception(
             f"Request failed | "
             f"request_id={request_id} | "
-            f"method={request.method} | "
-            f"path={request.url.path} | "
-            f"duration={duration:.4f}s"
+            f"duration={duration:.4f}s | "
+            f"error={e}"
         )
 
         raise
 
+
+
+# ValueError Handler
 
 @app.exception_handler(ValueError)
 async def value_error_handler(
@@ -95,23 +131,34 @@ async def value_error_handler(
     exc: ValueError
 ):
 
+    request_id = getattr(
+        request.state,
+        "request_id",
+        "unknown"
+    )
+
     logger.error(
         f"ValueError | "
-        f"request_id={getattr(request.state, 'request_id', 'unknown')} | "
+        f"request_id={request_id} | "
         f"error={exc}"
     )
 
     return JSONResponse(
+
         status_code=400,
+
         content={
             "error": "Invalid value",
-            "message": str(exc)
+            "message": str(exc),
+            "request_id": request_id
         }
     )
 
+# Root Endpoint
 
 @app.get("/")
 def root():
+
     return {
         "message": "ML API is alive"
     }
