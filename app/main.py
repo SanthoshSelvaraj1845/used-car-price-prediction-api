@@ -3,28 +3,25 @@ import time
 import uuid
 
 import joblib
-import pandas as pd
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from app.models.schemas import PredictionInput, PredictionOutput
 from app.logging_config import setup_logger
+from app.routers.v1 import router as v1_router
 
 
 logger = setup_logger()
-
-model = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
 
-    global model
-
     model = joblib.load(
         "ml/saved_model/model.joblib"
     )
+
+    app.state.model = model
 
     logger.info("ML model loaded successfully")
 
@@ -37,6 +34,9 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan
 )
+
+
+app.include_router(v1_router)
 
 
 @app.middleware("http")
@@ -112,66 +112,6 @@ async def value_error_handler(
 
 @app.get("/")
 def root():
-
     return {
         "message": "ML API is alive"
     }
-
-
-@app.get("/health")
-def health():
-
-    logger.info("Health check requested")
-
-    return {
-        "status": "ok",
-        "model_loaded": model is not None
-    }
-
-
-@app.post(
-    "/predict",
-    response_model=PredictionOutput
-)
-def predict_car_price(
-    car: PredictionInput,
-    request: Request
-):
-
-    request_id = request.state.request_id
-
-    try:
-
-        input_df = pd.DataFrame([
-            car.model_dump()
-        ])
-
-        prediction = model.predict(input_df)
-
-        predicted_price = float(prediction[0])
-
-        logger.info(
-            f"Prediction successful | "
-            f"request_id={request_id} | "
-            f"prediction={predicted_price}"
-        )
-
-        return PredictionOutput(
-            request_id=request_id,
-            prediction=predicted_price,
-            confidence_score=None,
-            model_version="1.0.0"
-        )
-
-    except Exception as e:
-
-        logger.exception(
-            f"Prediction failed | "
-            f"request_id={request_id} | "
-            f"error={e}"
-        )
-
-        raise HTTPException(
-            status_code=500,
-            detail="Prediction failed"
-        )
