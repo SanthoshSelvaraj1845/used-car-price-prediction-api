@@ -5,6 +5,8 @@ import pandas as pd
 
 from fastapi import APIRouter, HTTPException, Request
 
+from app.config import settings
+
 from app.models.schemas import (
     PredictionInput,
     PredictionOutput,
@@ -14,30 +16,41 @@ from app.models.schemas import (
 
 from app.logging_config import setup_logger
 
+
+# ---------------------------------
 # Router
+# ---------------------------------
 
 router = APIRouter(
     prefix="/api/v1",
     tags=["v1"]
 )
 
+
+# ---------------------------------
 # Logger
+# ---------------------------------
 
 logger = setup_logger()
 
-# Model information file
 
-MODEL_INFO_PATH = "ml/saved_model/model_info.json"
-
-# Load model information
+# =================================
+# Load Model Information
+# =================================
 
 def load_model_info():
 
-    with open(MODEL_INFO_PATH, "r") as file:
+    with open(
+        settings.MODEL_INFO_PATH,
+        "r"
+    ) as file:
 
         return json.load(file)
 
+
+# =================================
 # Health Endpoint
+# =================================
 
 @router.get("/health")
 def health(request: Request):
@@ -52,7 +65,10 @@ def health(request: Request):
         "model_loaded": model_loaded
     }
 
-# Single Prediction Endpoint
+
+# =================================
+# Single Prediction
+# =================================
 
 @router.post(
     "/predict",
@@ -69,19 +85,13 @@ def predict(
 
     try:
 
-        # Convert input into DataFrame
-
         input_data = pd.DataFrame([
             data.model_dump()
         ])
 
-        # Make prediction
-
         prediction = model.predict(
             input_data
         )
-
-        # Load model information
 
         model_info = load_model_info()
 
@@ -120,8 +130,10 @@ def predict(
             detail="Prediction failed"
         )
 
-# Batch Prediction Endpoint
 
+# =================================
+# Batch Prediction
+# =================================
 
 @router.post(
     "/predict-batch",
@@ -136,34 +148,66 @@ def predict_batch(
 
     model = request.app.state.model
 
-    start_time = time.perf_counter()
-
     batch_size = len(
         batch.cars
     )
 
+    start_time = time.perf_counter()
+
+    # ---------------------------------
+    # Check maximum batch size
+    # ---------------------------------
+
+    if batch_size > settings.MAX_BATCH_SIZE:
+
+        logger.warning(
+            f"Batch size exceeded | "
+            f"request_id={request_id} | "
+            f"batch_size={batch_size} | "
+            f"max_batch_size={settings.MAX_BATCH_SIZE}"
+        )
+
+        raise HTTPException(
+
+            status_code=400,
+
+            detail=(
+                f"Batch size cannot exceed "
+                f"{settings.MAX_BATCH_SIZE} cars. "
+                f"Received {batch_size} cars."
+            )
+        )
+
     try:
 
-        # Convert all cars into dictionaries
+        # ---------------------------------
+        # Convert cars to dictionaries
+        # ---------------------------------
 
         cars = [
             car.model_dump()
             for car in batch.cars
         ]
 
-        # Convert complete batch to DataFrame
+        # ---------------------------------
+        # Create DataFrame
+        # ---------------------------------
 
         input_df = pd.DataFrame(
             cars
         )
 
-        # Predict entire batch at once
+        # ---------------------------------
+        # Predict complete batch at once
+        # ---------------------------------
 
         predictions = model.predict(
             input_df
         )
 
-        # Load model information
+        # ---------------------------------
+        # Get model version
+        # ---------------------------------
 
         model_info = load_model_info()
 
@@ -171,7 +215,9 @@ def predict_batch(
             "model_version"
         ]
 
-        # Create output
+        # ---------------------------------
+        # Create results
+        # ---------------------------------
 
         results = []
 
@@ -193,14 +239,18 @@ def predict_batch(
                 )
             )
 
+        # ---------------------------------
         # Calculate duration
+        # ---------------------------------
 
         duration = (
             time.perf_counter()
             - start_time
         )
 
-        # Log batch information
+        # ---------------------------------
+        # Log batch prediction
+        # ---------------------------------
 
         logger.info(
             f"Batch prediction successful | "
@@ -235,7 +285,7 @@ def predict_batch(
 
 
 # =================================
-# Model Information Endpoint
+# Model Information
 # =================================
 
 @router.get("/model-info")

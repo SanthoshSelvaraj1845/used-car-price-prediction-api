@@ -8,23 +8,29 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
+from app.config import settings
 from app.logging_config import setup_logger
-
 from app.routers.v1 import router as v1_router
 
+
+# ---------------------------------
 # Logger
+# ---------------------------------
 
 logger = setup_logger()
 
+
+# ---------------------------------
 # Lifespan
+# ---------------------------------
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
 
-    # Load ML model once when application starts
+    # Load ML model using configuration
 
     model = joblib.load(
-        "ml/saved_model/model.joblib"
+        settings.MODEL_PATH
     )
 
     app.state.model = model
@@ -39,22 +45,31 @@ async def lifespan(app: FastAPI):
         "Application shutting down"
     )
 
+
+# ---------------------------------
 # FastAPI Application
+# ---------------------------------
 
 app = FastAPI(
-    title="Used Car Price Prediction API",
+    title=settings.API_TITLE,
+    version=settings.API_VERSION,
     description="ML API for predicting used car prices",
-    version="1.0.0",
     lifespan=lifespan
 )
 
+
+# ---------------------------------
 # Include Version 1 Router
+# ---------------------------------
 
 app.include_router(
     v1_router
 )
 
+
+# ---------------------------------
 # Request Logging Middleware
+# ---------------------------------
 
 @app.middleware("http")
 async def request_logging_middleware(
@@ -62,15 +77,11 @@ async def request_logging_middleware(
     call_next
 ):
 
-    # Create request ID
-
     request_id = str(
         uuid.uuid4()
     )
 
     request.state.request_id = request_id
-
-    # Start timer
 
     start_time = time.perf_counter()
 
@@ -122,8 +133,9 @@ async def request_logging_middleware(
         raise
 
 
-
+# ---------------------------------
 # ValueError Handler
+# ---------------------------------
 
 @app.exception_handler(ValueError)
 async def value_error_handler(
@@ -154,7 +166,10 @@ async def value_error_handler(
         }
     )
 
+
+# ---------------------------------
 # Root Endpoint
+# ---------------------------------
 
 @app.get("/")
 def root():

@@ -3,10 +3,12 @@ from typing import List
 from pydantic import BaseModel, Field
 
 
+# ---------------------------------
 # Single Prediction Input
-
+# ---------------------------------
 
 class PredictionInput(BaseModel):
+
     name: str
 
     year: int = Field(
@@ -28,9 +30,12 @@ class PredictionInput(BaseModel):
     owner: str
 
 
+# ---------------------------------
 # Single Prediction Output
+# ---------------------------------
 
 class PredictionOutput(BaseModel):
+
     request_id: str
 
     prediction: float
@@ -39,17 +44,23 @@ class PredictionOutput(BaseModel):
 
     model_version: str
 
+
+# ---------------------------------
 # Batch Prediction Input
+# ---------------------------------
 
 class PredictionBatchInput(BaseModel):
+
     cars: List[PredictionInput] = Field(
         ...,
-        min_length=1,
-        max_length=100
+        min_length=1
     )
 
-# Batch Prediction Output
 
+# ---------------------------------
+# Batch Prediction Output
+# ---------------------------------
 
 class PredictionBatchOutput(BaseModel):
+
     predictions: List[PredictionOutput]
