@@ -1,16 +1,20 @@
 import time
 import uuid
-
 import joblib
 
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
+
 from fastapi.responses import JSONResponse
 
 from app.config import settings
+
 from app.logging_config import setup_logger
+
 from app.routers.v1 import router as v1_router
+
+from app.routers.v2 import router as v2_router
 
 
 # ---------------------------------
@@ -21,13 +25,11 @@ logger = setup_logger()
 
 
 # ---------------------------------
-# Lifespan
+# Application Lifespan
 # ---------------------------------
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-
-    # Load ML model using configuration
 
     model = joblib.load(
         settings.MODEL_PATH
@@ -51,19 +53,29 @@ async def lifespan(app: FastAPI):
 # ---------------------------------
 
 app = FastAPI(
+
     title=settings.API_TITLE,
+
     version=settings.API_VERSION,
-    description="ML API for predicting used car prices",
+
+    description=(
+        "ML API for predicting used car prices"
+    ),
+
     lifespan=lifespan
 )
 
 
 # ---------------------------------
-# Include Version 1 Router
+# Include Routers
 # ---------------------------------
 
 app.include_router(
     v1_router
+)
+
+app.include_router(
+    v2_router
 )
 
 
@@ -134,7 +146,7 @@ async def request_logging_middleware(
 
 
 # ---------------------------------
-# ValueError Handler
+# Value Error Handler
 # ---------------------------------
 
 @app.exception_handler(ValueError)
@@ -160,8 +172,11 @@ async def value_error_handler(
         status_code=400,
 
         content={
+
             "error": "Invalid value",
+
             "message": str(exc),
+
             "request_id": request_id
         }
     )

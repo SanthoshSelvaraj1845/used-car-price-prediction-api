@@ -64,3 +64,16 @@ class PredictionBatchInput(BaseModel):
 class PredictionBatchOutput(BaseModel):
 
     predictions: List[PredictionOutput]
+
+
+# ---------------------------------
+# V2 Prediction Output
+# ---------------------------------
+
+class PredictionV2Output(BaseModel):
+
+    request_id: str
+
+    predicted_price: float
+
+    model_version: str
