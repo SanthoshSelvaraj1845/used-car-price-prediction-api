@@ -1,4 +1,5 @@
 import logging
+import os
 
 from logging.handlers import RotatingFileHandler
 
@@ -49,6 +50,17 @@ def setup_logger():
     # File Handler
     # ---------------------------------
 
+    # Create log directory if it does not exist
+    log_directory = os.path.dirname(
+        settings.LOG_FILE_PATH
+    )
+
+    if log_directory:
+        os.makedirs(
+            log_directory,
+            exist_ok=True
+        )
+
     file_handler = RotatingFileHandler(
         settings.LOG_FILE_PATH,
         maxBytes=5_000_000,
@@ -79,3 +91,4 @@ def setup_logger():
     )
 
     return logger
+
