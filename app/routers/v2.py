@@ -2,7 +2,8 @@ import json
 
 import pandas as pd
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
+from app.security import verify_api_key
 
 from app.config import settings
 
@@ -20,8 +21,10 @@ from app.logging_config import setup_logger
 
 router = APIRouter(
     prefix="/api/v2",
-    tags=["v2"]
+    tags=["v2"],
+    dependencies=[Depends(verify_api_key)]
 )
+
 
 
 logger = setup_logger()

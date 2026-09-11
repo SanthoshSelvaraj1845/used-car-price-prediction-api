@@ -16,6 +16,8 @@ from app.routers.v1 import router as v1_router
 
 from app.routers.v2 import router as v2_router
 
+from fastapi.middleware.cors import CORSMiddleware
+
 
 # ---------------------------------
 # Logger
@@ -63,6 +65,17 @@ app = FastAPI(
     ),
 
     lifespan=lifespan
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:5173"
+    ],
+    allow_credentials=True,
+    allow_methods=["GET", "POST"],
+    allow_headers=["X-API-Key", "Content-Type"],
 )
 
 
