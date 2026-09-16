@@ -5,18 +5,17 @@ import joblib
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
-
 from fastapi.responses import JSONResponse
 
-from app.config import settings
+from fastapi.middleware.cors import CORSMiddleware
 
+from prometheus_fastapi_instrumentator import Instrumentator
+
+from app.config import settings
 from app.logging_config import setup_logger
 
 from app.routers.v1 import router as v1_router
-
 from app.routers.v2 import router as v2_router
-
-from fastapi.middleware.cors import CORSMiddleware
 
 
 # ---------------------------------
@@ -33,10 +32,12 @@ logger = setup_logger()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
 
+    # Load ML model when application starts
     model = joblib.load(
         settings.MODEL_PATH
     )
 
+    # Store model in FastAPI application state
     app.state.model = model
 
     logger.info(
@@ -45,6 +46,7 @@ async def lifespan(app: FastAPI):
 
     yield
 
+    # Application shutdown
     logger.info(
         "Application shutting down"
     )
@@ -67,16 +69,38 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+
+# ---------------------------------
+# CORS Middleware
+# ---------------------------------
+
 app.add_middleware(
     CORSMiddleware,
+
     allow_origins=[
         "http://localhost:3000",
         "http://localhost:5173"
     ],
+
     allow_credentials=True,
-    allow_methods=["GET", "POST"],
-    allow_headers=["X-API-Key", "Content-Type"],
+
+    allow_methods=[
+        "GET",
+        "POST"
+    ],
+
+    allow_headers=[
+        "X-API-Key",
+        "Content-Type"
+    ],
 )
+
+
+# ---------------------------------
+# Prometheus Metrics
+# ---------------------------------
+
+Instrumentator().instrument(app).expose(app)
 
 
 # ---------------------------------

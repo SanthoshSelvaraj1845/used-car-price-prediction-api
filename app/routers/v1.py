@@ -4,6 +4,7 @@ import time
 import pandas as pd
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+
 from app.security import verify_api_key
 
 from app.config import settings
@@ -17,10 +18,12 @@ from app.models.schemas import (
 
 from app.logging_config import setup_logger
 
+from app.metrics import successful_predictions
 
-# ---------------------------------
+
+# =================================
 # Router
-# ---------------------------------
+# =================================
 
 router = APIRouter(
     prefix="/api/v1",
@@ -29,9 +32,9 @@ router = APIRouter(
 )
 
 
-# ---------------------------------
+# =================================
 # Logger
-# ---------------------------------
+# =================================
 
 logger = setup_logger()
 
@@ -87,13 +90,25 @@ def predict(
 
     try:
 
+        # ---------------------------------
+        # Convert input to DataFrame
+        # ---------------------------------
+
         input_data = pd.DataFrame([
             data.model_dump()
         ])
 
+        # ---------------------------------
+        # Make prediction
+        # ---------------------------------
+
         prediction = model.predict(
             input_data
         )
+
+        # ---------------------------------
+        # Load model information
+        # ---------------------------------
 
         model_info = load_model_info()
 
@@ -101,10 +116,24 @@ def predict(
             "model_version"
         ]
 
+        # ---------------------------------
+        # Prometheus custom metric
+        # ---------------------------------
+
+        successful_predictions.inc()
+
+        # ---------------------------------
+        # Log successful prediction
+        # ---------------------------------
+
         logger.info(
             f"Prediction successful | "
             f"request_id={request_id}"
         )
+
+        # ---------------------------------
+        # Return response
+        # ---------------------------------
 
         return PredictionOutput(
 
@@ -156,9 +185,10 @@ def predict_batch(
 
     start_time = time.perf_counter()
 
-    # ---------------------------------
-    # Check maximum batch size
-    # ---------------------------------
+
+    # =================================
+    # Check Maximum Batch Size
+    # =================================
 
     if batch_size > settings.MAX_BATCH_SIZE:
 
@@ -180,6 +210,7 @@ def predict_batch(
             )
         )
 
+
     try:
 
         # ---------------------------------
@@ -200,7 +231,7 @@ def predict_batch(
         )
 
         # ---------------------------------
-        # Predict complete batch at once
+        # Predict complete batch
         # ---------------------------------
 
         predictions = model.predict(
@@ -208,7 +239,7 @@ def predict_batch(
         )
 
         # ---------------------------------
-        # Get model version
+        # Load model information
         # ---------------------------------
 
         model_info = load_model_info()
@@ -216,6 +247,18 @@ def predict_batch(
         model_version = model_info[
             "model_version"
         ]
+
+        # ---------------------------------
+        # Prometheus custom metric
+        # ---------------------------------
+        #
+        # If batch contains 3 cars,
+        # increase the counter by 3.
+        #
+
+        successful_predictions.inc(
+            batch_size
+        )
 
         # ---------------------------------
         # Create results
@@ -251,7 +294,7 @@ def predict_batch(
         )
 
         # ---------------------------------
-        # Log batch prediction
+        # Log successful batch prediction
         # ---------------------------------
 
         logger.info(
@@ -261,9 +304,14 @@ def predict_batch(
             f"duration={duration:.4f}s"
         )
 
+        # ---------------------------------
+        # Return response
+        # ---------------------------------
+
         return PredictionBatchOutput(
             predictions=results
         )
+
 
     except Exception as e:
 
@@ -294,6 +342,10 @@ def predict_batch(
 def model_info():
 
     try:
+
+        # ---------------------------------
+        # Load model information
+        # ---------------------------------
 
         info = load_model_info()
 
