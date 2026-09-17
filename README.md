@@ -12,6 +12,104 @@ The goal of this project is to build a complete ML-powered API rather than only 
 
 The system takes used-car information through an HTTP API and returns a predicted selling price.
 
+## Architecture
+
+                         ┌──────────────────────┐
+                         │       Client         │
+                         │ curl / Browser / App │
+                         └──────────┬───────────┘
+                                    │
+                                    │ HTTP Request
+                                    ▼
+                         ┌──────────────────────┐
+                         │    Docker Container  │
+                         │                      │
+                         │      FastAPI         │
+                         └──────────┬───────────┘
+                                    │
+                                    ▼
+                         ┌──────────────────────┐
+                         │   API Key Security   │
+                         │      x-api-key       │
+                         └──────────┬───────────┘
+                                    │
+                                    ▼
+                         ┌──────────────────────┐
+                         │ Pydantic Validation  │
+                         │   Request Schema     │
+                         └──────────┬───────────┘
+                                    │
+                                    ▼
+                 ┌────────────────────────────────────┐
+                 │             API Router              │
+                 │                                    │
+                 │ /api/v1/predict                    │
+                 │ /api/v1/predict-batch              │
+                 │ /api/v1/health                     │
+                 │ /api/v1/model-info                 │
+                 │ /api/v2/predict                    │
+                 └────────────────┬───────────────────┘
+                                  │
+                                  ▼
+                         ┌──────────────────────┐
+                         │   Saved ML Model     │
+                         │    model.joblib      │
+                         └──────────┬───────────┘
+                                    │
+                                    ▼
+                         ┌──────────────────────┐
+                         │   Price Prediction   │
+                         └──────────┬───────────┘
+                                    │
+                                    ▼
+                         ┌──────────────────────┐
+                         │    JSON Response     │
+                         └──────────────────────┘
+
+
+       ┌──────────────────────┐          ┌──────────────────────┐
+       │  Structured Logging  │          │ Prometheus Metrics   │
+       │     logs/app.log     │          │      /metrics        │
+       └──────────────────────┘          └──────────────────────┘
+
+## ML training
+
+                  ┌──────────────────────┐
+                  │  Used Car Dataset    │
+                  │  data/used_cars.csv  │
+                  └──────────┬───────────┘
+                             │
+                             ▼
+                  ┌──────────────────────┐
+                  │ Data Preprocessing   │
+                  └──────────┬───────────┘
+                             │
+                             ▼
+                  ┌──────────────────────┐
+                  │ Train/Test Split     │
+                  └──────────┬───────────┘
+                             │
+                             ▼
+                  ┌──────────────────────┐
+                  │ Random Forest Model  │
+                  └──────────┬───────────┘
+                             │
+                             ▼
+                  ┌──────────────────────┐
+                  │ Model Evaluation     │
+                  │ MAE / MSE / R²       │
+                  └──────────┬───────────┘
+                             │
+                             ▼
+                  ┌──────────────────────┐
+                  │ model.joblib         │
+                  │ Saved Model          │
+                  └──────────┬───────────┘
+                             │
+                             ▼
+                       FastAPI API
+                       
+
 ### Input Features
 
 The model uses the following features:
