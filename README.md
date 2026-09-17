@@ -108,7 +108,7 @@ The system takes used-car information through an HTTP API and returns a predicte
                              │
                              ▼
                        FastAPI API
-                       
+
 
 ### Input Features
 
@@ -697,28 +697,28 @@ This makes the application reproducible across different environments.
 
 # Deployment
 
-The application is designed to be deployed as a Docker container to a cloud hosting platform.
+The application is containerized using Docker and deployed on Render as a cloud-based FastAPI Machine Learning API.
 
-The deployment configuration uses environment variables for configuration and secrets rather than storing sensitive values in source code.
+The deployment configuration uses environment variables for application configuration and secrets rather than storing sensitive values in source code.
 
-A public deployment URL should be added here after deployment:
+## Live API
 
-```text
-Live API:
-YOUR_DEPLOYED_URL
-```
+Public API:
+
+https://used-car-price-prediction-api.onrender.com
 
 Swagger documentation:
 
-```text
-YOUR_DEPLOYED_URL/docs
-```
+https://used-car-price-prediction-api.onrender.com/docs
 
 Metrics:
 
-```text
-YOUR_DEPLOYED_URL/metrics
-```
+https://used-car-price-prediction-api.onrender.com/metrics
+
+The deployed API provides public HTTPS access to the FastAPI application. Protected API endpoints require an API key through the `x-api-key` request header.
+
+The API key is stored securely as an environment variable in Render and is not included in the GitHub repository.
+
 
 ---
 
