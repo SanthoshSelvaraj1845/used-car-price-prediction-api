@@ -1,5 +1,7 @@
-from fastapi.testclient import TestClient 
+from fastapi.testclient import TestClient
+
 from app.main import app
+from app.config import settings
 
 
 def valid_payload():
@@ -14,11 +16,15 @@ def valid_payload():
     }
 
 
-def test_missing_api_key(): 
-    client = TestClient(app) 
-    response = client.post( "/api/v1/predict", json=valid_payload() )
+def test_missing_api_key():
+    client = TestClient(app)
 
-    assert response.status_code == 401 
+    response = client.post(
+        "/api/v1/predict",
+        json=valid_payload()
+    )
+
+    assert response.status_code == 401
     assert response.json()["detail"] == "Missing API key"
 
 
@@ -37,14 +43,13 @@ def test_invalid_api_key(client):
 
 def test_unexpected_extra_field(client):
     payload = valid_payload()
-
     payload["unexpected_field"] = "not allowed"
 
     response = client.post(
         "/api/v1/predict",
         json=payload,
         headers={
-            "X-API-Key": "my-used-car-api-secret-2026"
+            "X-API-Key": settings.API_KEY
         }
     )
 
