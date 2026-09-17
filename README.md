@@ -1,185 +1,760 @@
-# used-car-price-prediction-api
-Machine learning REST API that predicts used car prices using Python, Scikit-learn/XGBoost, and FastAPI.
-
 # Used Car Price Prediction API
 
-## 1. Project Overview
+A production-oriented Machine Learning API that predicts the selling price of a used car based on its vehicle and ownership details.
 
-This project is a machine learning-powered REST API that predicts the estimated selling price of a used car based on its features. The project combines a tabular machine learning model with FastAPI to provide predictions through a REST API. The main goal is to learn how to build and serve a machine learning model as a reliable API service.
+The project combines a trained Machine Learning model with a FastAPI service, input validation, API versioning, authentication, structured logging, Docker containerization, Prometheus monitoring, automated testing, and integration/load testing.
 
-## 2. ML Problem
+---
 
-**Problem:** Used Car Price Prediction
+## Project Overview
 
-**Machine Learning Type:** Supervised Learning
+The goal of this project is to build a complete ML-powered API rather than only training a Machine Learning model.
 
-**ML Task:** Regression
+The system takes used-car information through an HTTP API and returns a predicted selling price.
 
-The model will learn the relationship between used-car features and their selling prices. Given the details of a used car, the model will predict its estimated selling price.
+### Input Features
 
-## 3. Dataset
+The model uses the following features:
 
-The project will use a tabular used-car dataset containing information such as:
+* Car name
+* Manufacturing year
+* Kilometers driven
+* Fuel type
+* Seller type
+* Transmission
+* Owner type
 
-- name
-- year
-- km_driven
-- fuel
-- seller_type
-- transmission
-- owner
+### Output
 
-The target variable is the **selling price** of the used car.
+The API returns:
 
-## 4. Model
+* Prediction
+* Request ID
+* Model version
+* Additional API response information depending on the API version
 
-The project will use a regression model from **Scikit-learn and/or XGBoost**.
+---
 
-The model will be trained using the selected used-car dataset and evaluated using appropriate regression metrics such as MAE, RMSE, and R².
+## Technology Stack
 
-The initial focus is not on building a highly complex model. The main goal is to understand how a machine learning model can be integrated into a production-style API.
+| Technology              | Purpose                   |
+| ----------------------- | ------------------------- |
+| Python                  | Main programming language |
+| FastAPI                 | REST API framework        |
+| Pydantic                | Request validation        |
+| Scikit-learn            | Machine Learning          |
+| Random Forest Regressor | Price prediction model    |
+| Pandas                  | Data processing           |
+| Joblib                  | Model serialization       |
+| Uvicorn                 | ASGI server               |
+| Docker                  | Containerization          |
+| Docker Compose          | Local deployment          |
+| Pytest                  | Automated testing         |
+| HTTPX                   | Integration testing       |
+| Prometheus              | API monitoring            |
+| Git/GitHub              | Version control           |
 
-## 5. API Contract
+---
 
-The `/predict` endpoint will accept used-car information such as the manufacturing year, kilometers driven, fuel type, transmission type, and ownership information.
-
-The API will validate the received input using Pydantic. Valid data will then be passed through the required preprocessing steps and sent to the trained machine learning model.
-
-The model will return an estimated used-car selling price, which the API will return to the client as a JSON response.
-
-### Example Request
-
-```json
-{
-  "name": "Maruti Swift VXI",
-  "year": 2020,
-  "km_driven": 45000,
-  "fuel": "Diesel",
-  "seller_type": "Dealer",
-  "transmission": "Manual",
-  "owner": "First Owner"
-}
-```
-
-### Example Response
-
-```json
-{
-  "predicted_price": 625000
-}
-```
-
-## 6. REST API
-
-The main MVP endpoint will be:
-
-| Method | Endpoint   | Purpose                                   |
-| ------ | ---------- | ----------------------------------------- |
-| POST   | `/predict` | Predict the estimated price of a used car |
-
-A successful prediction will return HTTP status code `200`.
-
-Invalid request data will be rejected through Pydantic/FastAPI validation.
-
-## 7. Request Flow
+## Architecture
 
 ```text
-Client
+                        Client
+                          |
+                          | HTTP Request
+                          v
+                  +------------------+
+                  |    FastAPI API   |
+                  +------------------+
+                          |
+                          v
+                  +------------------+
+                  | API Key Security |
+                  +------------------+
+                          |
+                          v
+                  +------------------+
+                  | Pydantic         |
+                  | Validation       |
+                  +------------------+
+                          |
+                          v
+                  +------------------+
+                  | API Router       |
+                  | /api/v1          |
+                  | /api/v2          |
+                  +------------------+
+                          |
+                          v
+                  +------------------+
+                  | Saved ML Pipeline|
+                  | / Model          |
+                  +------------------+
+                          |
+                          v
+                  +------------------+
+                  | Price Prediction |
+                  +------------------+
+                          |
+             +------------+-------------+
+             |                          |
+             v                          v
+      Structured Logs              Prometheus
+      logs/app.log                  /metrics
+```
+
+---
+
+## Project Structure
+
+```text
+used-car-price-prediction-api/
+│
+├── app/
+│   ├── main.py
+│   ├── config.py
+│   ├── logging_config.py
+│   │
+│   ├── models/
+│   │   └── schemas.py
+│   │
+│   └── routers/
+│       └── v1.py
+│
+├── ml/
+│   ├── train.py
+│   ├── predict.py
+│   └── saved_model/
+│       ├── model.joblib
+│       └── model_info.json
+│
+├── tests/
+│   ├── test_integration.py
+│   └── ...
+│
+├── data/
+│   └── used_cars.csv
+│
+├── logs/
+│
+├── Dockerfile
+├── docker-compose.yml
+├── requirements.txt
+├── pytest.ini
+├── .env
+├── .gitignore
+└── README.md
+```
+
+> `.env` contains local configuration and secrets and should not be committed to GitHub.
+
+---
+
+# Machine Learning Pipeline
+
+The Machine Learning workflow is:
+
+```text
+Used Car Dataset
+       |
+       v
+Data Preparation
+       |
+       v
+Feature Selection
+       |
+       v
+Train/Test Split
+       |
+       v
+Preprocessing
+       |
+       v
+Random Forest Regressor
+       |
+       v
+Model Evaluation
+       |
+       v
+Saved Model
+       |
+       v
+FastAPI Prediction Service
+```
+
+The trained model is saved using Joblib so that the API can load the model without retraining it for every request.
+
+---
+
+# API Endpoints
+
+## Root
+
+### `GET /`
+
+Checks that the API application is running.
+
+Example:
+
+```bash
+curl http://localhost:8000/
+```
+
+---
+
+## Health Check
+
+### `GET /api/v1/health`
+
+Checks API and model availability.
+
+Example:
+
+```bash
+curl http://localhost:8000/api/v1/health \
+  -H "x-api-key: YOUR_API_KEY"
+```
+
+Example response:
+
+```json
+{
+  "status": "ok",
+  "model_loaded": true
+}
+```
+
+---
+
+## Single Prediction
+
+### `POST /api/v1/predict`
+
+Predicts the selling price of one used car.
+
+Example:
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/predict" \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: YOUR_API_KEY" \
+  -d '{
+    "name": "Maruti Swift VXI",
+    "year": 2020,
+    "km_driven": 45000,
+    "fuel": "Diesel",
+    "seller_type": "Dealer",
+    "transmission": "Manual",
+    "owner": "First Owner"
+  }'
+```
+
+Example response:
+
+```json
+{
+  "request_id": "example-request-id",
+  "prediction": 770000.0,
+  "confidence_score": null,
+  "model_version": "1.0.0"
+}
+```
+
+The exact prediction depends on the trained model and input data.
+
+---
+
+# Batch Prediction
+
+### `POST /api/v1/predict-batch`
+
+Predicts prices for multiple cars in one request.
+
+Example:
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/predict-batch" \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: YOUR_API_KEY" \
+  -d '{
+    "cars": [
+      {
+        "name": "Maruti Swift VXI",
+        "year": 2020,
+        "km_driven": 45000,
+        "fuel": "Diesel",
+        "seller_type": "Dealer",
+        "transmission": "Manual",
+        "owner": "First Owner"
+      },
+      {
+        "name": "Hyundai i20",
+        "year": 2019,
+        "km_driven": 30000,
+        "fuel": "Petrol",
+        "seller_type": "Individual",
+        "transmission": "Manual",
+        "owner": "First Owner"
+      }
+    ]
+  }'
+```
+
+---
+
+# API Version 2
+
+### `POST /api/v2/predict`
+
+Provides the version 2 prediction response.
+
+Example:
+
+```bash
+curl -X POST "http://localhost:8000/api/v2/predict" \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: YOUR_API_KEY" \
+  -d '{
+    "name": "Maruti Swift VXI",
+    "year": 2020,
+    "km_driven": 45000,
+    "fuel": "Diesel",
+    "seller_type": "Dealer",
+    "transmission": "Manual",
+    "owner": "First Owner"
+  }'
+```
+
+API versioning allows the service to introduce new response formats or functionality while maintaining the existing version.
+
+---
+
+# Model Information
+
+### `GET /api/v1/model-info`
+
+Returns information about the loaded Machine Learning model.
+
+Example:
+
+```bash
+curl http://localhost:8000/api/v1/model-info \
+  -H "x-api-key: YOUR_API_KEY"
+```
+
+---
+
+# Prometheus Metrics
+
+### `GET /metrics`
+
+Exposes application metrics for Prometheus.
+
+Example:
+
+```bash
+curl http://localhost:8000/metrics
+```
+
+The endpoint exposes metrics related to application requests and API activity.
+
+---
+
+# Interactive API Documentation
+
+FastAPI automatically provides interactive documentation.
+
+After starting the application, open:
+
+```text
+http://localhost:8000/docs
+```
+
+Alternative OpenAPI documentation:
+
+```text
+http://localhost:8000/redoc
+```
+
+---
+
+# Authentication
+
+Protected API endpoints require an API key through the request header:
+
+```text
+x-api-key
+```
+
+Example:
+
+```text
+x-api-key: YOUR_API_KEY
+```
+
+The API key is configured through an environment variable.
+
+Never commit real API keys or other secrets to GitHub.
+
+---
+
+# Configuration
+
+Configuration is managed through environment variables.
+
+Example local `.env`:
+
+```env
+MODEL_PATH=ml/saved_model/model.joblib
+LOG_LEVEL=INFO
+MAX_BATCH_SIZE=100
+API_TITLE=Used Car Price Prediction API
+API_VERSION=1.0.0
+MODEL_INFO_PATH=ml/saved_model/model_info.json
+LOG_FILE_PATH=logs/app.log
+API_KEY=YOUR_LOCAL_API_KEY
+```
+
+The actual `.env` file should remain local and should be excluded through `.gitignore`.
+
+---
+
+# Running Locally
+
+## 1. Clone the repository
+
+```bash
+git clone https://github.com/SanthoshSelvaraj1845/used-car-price-prediction-api.git
+cd used-car-price-prediction-api
+```
+
+## 2. Create a virtual environment
+
+Windows:
+
+```powershell
+python -m venv venv
+```
+
+Activate it:
+
+```powershell
+.\venv\Scripts\Activate.ps1
+```
+
+## 3. Install dependencies
+
+```powershell
+pip install -r requirements.txt
+```
+
+## 4. Configure environment variables
+
+Create a local `.env` file and configure the required values.
+
+## 5. Start the API
+
+```powershell
+uvicorn app.main:app --reload
+```
+
+The API will be available at:
+
+```text
+http://127.0.0.1:8000
+```
+
+---
+
+# Running with Docker Compose
+
+The recommended reproducible way to run the application is Docker Compose.
+
+```bash
+docker compose up --build
+```
+
+After the container starts:
+
+```text
+API:   http://localhost:8000
+Docs:  http://localhost:8000/docs
+```
+
+To stop the application:
+
+```bash
+docker compose down
+```
+
+---
+
+# Testing
+
+The project uses Pytest for automated testing.
+
+Run the complete test suite:
+
+```bash
+pytest -v
+```
+
+Integration tests communicate with the running API over HTTP instead of directly calling FastAPI application functions.
+
+Run integration tests:
+
+```bash
+pytest tests/test_integration.py -v
+```
+
+Before running integration tests, make sure the Docker container or local API server is running.
+
+---
+
+# Load Testing
+
+A basic asynchronous HTTP load test was created to send concurrent prediction requests to the API.
+
+The load test was used to evaluate:
+
+* Request success rate
+* Response time
+* Fastest request
+* Slowest request
+* Average response time
+* HTTP status codes
+
+The load test also helped identify configuration/application issues before finalizing the project.
+
+---
+
+# Logging
+
+The API uses structured application logging.
+
+Logs include information such as:
+
+* Timestamp
+* Log level
+* Logger name
+* Request processing information
+* Request ID
+* API activity
+
+Application logs are written to:
+
+```text
+logs/app.log
+```
+
+Log rotation is configured to prevent a single log file from growing indefinitely.
+
+---
+
+# Monitoring
+
+Prometheus-compatible metrics are exposed through:
+
+```text
+GET /metrics
+```
+
+This allows monitoring tools such as Prometheus and Grafana to collect and visualize application metrics.
+
+---
+
+# Error Handling and Validation
+
+Pydantic models validate incoming API requests.
+
+Examples of invalid input that can be rejected include:
+
+* Missing required fields
+* Invalid numeric values
+* Negative `km_driven`
+* Invalid year values
+* Unexpected request fields
+* Invalid API keys
+* Oversized batch requests
+
+This prevents invalid data from reaching the Machine Learning model.
+
+---
+
+# Docker
+
+The application is containerized using Docker.
+
+The container packages:
+
+* Python runtime
+* Application code
+* Machine Learning dependencies
+* Saved model
+* API configuration
+
+This makes the application reproducible across different environments.
+
+---
+
+# Deployment
+
+The application is designed to be deployed as a Docker container to a cloud hosting platform.
+
+The deployment configuration uses environment variables for configuration and secrets rather than storing sensitive values in source code.
+
+A public deployment URL should be added here after deployment:
+
+```text
+Live API:
+YOUR_DEPLOYED_URL
+```
+
+Swagger documentation:
+
+```text
+YOUR_DEPLOYED_URL/docs
+```
+
+Metrics:
+
+```text
+YOUR_DEPLOYED_URL/metrics
+```
+
+---
+
+# Independent Extension
+
+## GitHub Actions CI
+
+As an independent extension, GitHub Actions can be used to automatically run the project's test suite whenever code is pushed to GitHub.
+
+The workflow performs the following:
+
+```text
+Git Push
    |
-   | POST /predict
-   ↓
+   v
+GitHub Actions
+   |
+   v
+Set up Python
+   |
+   v
+Install Dependencies
+   |
+   v
+Run Pytest
+   |
+   v
+Pass / Fail
+```
+
+This adds an automated quality check to the project and helps detect regressions before changes are merged or deployed.
+
+---
+
+# What I Learned
+
+During this project I learned how to build an ML application as a complete API service instead of stopping after model training.
+
+I learned how to:
+
+* Train and save a Machine Learning model.
+* Load a saved model without retraining it.
+* Build REST APIs using FastAPI.
+* Validate API input using Pydantic.
+* Organize APIs using routers and API versions.
+* Handle configuration using environment variables.
+* Add API-key based security.
+* Implement structured application logging.
+* Add Prometheus metrics.
+* Write automated tests using Pytest.
+* Perform integration testing against a running API.
+* Perform basic concurrent load testing.
+* Package the application using Docker.
+* Run the application using Docker Compose.
+* Debug API errors such as authentication, validation, routing, and server errors.
+* Document an application so another developer can understand and run it.
+* Use Git and GitHub to manage the project.
+
+The biggest lesson was understanding the complete flow:
+
+```text
+Client Request
+      ↓
+Docker Container
+      ↓
 FastAPI
-   |
-   ↓
+      ↓
+Authentication
+      ↓
 Pydantic Validation
-   |
-   ↓
-Data Preprocessing
-   |
-   ↓
-Trained ML Model
-   |
-   ↓
-Predicted Car Price
-   |
-   ↓
-JSON Response
+      ↓
+API Router
+      ↓
+Saved ML Model
+      ↓
+Prediction
+      ↓
+Response
+      ↓
+Logs + Prometheus Metrics
 ```
 
-## 8. Technology Stack
+---
 
-Python
-FastAPI
-Pydantic
-Pandas
-Scikit-learn
-Joblib
-Uvicorn
-Docker
-Pytest
-Prometheus
-Structured Logging
-Git
-GitHub
+# Future Improvements
 
-## 9. MVP Scope
+Possible future improvements include:
 
-The first version of the project will focus only on:
+* Continuous deployment
+* Model retraining pipeline
+* Database storage for prediction history
+* Grafana monitoring dashboard
+* More advanced model evaluation
+* Response caching
+* Model version management
+* Improved authentication and authorization
+* Cloud-based model storage
 
-1. Preparing the used-car dataset
-2. Training a regression model
-3. Saving the trained model
-4. Creating a FastAPI application
-5. Creating the `/predict` endpoint
-6. Validating request data using Pydantic
-7. Returning the predicted car price
+---
 
-Advanced features such as authentication, databases, frontend applications, model retraining pipelines, and cloud deployment are outside the initial MVP scope.
+# Final Project Status
 
-## 10. Project Architecture
+The project demonstrates an end-to-end Machine Learning API workflow:
 
 ```text
-                Used Car Dataset
-                       |
-                       ↓
-               Data Preprocessing
-                       |
-                       ↓
-                ML Model Training
-                       |
-                       ↓
-                 Trained Model
-                       |
-                       ↓
-Client → FastAPI → Pydantic → Prediction → JSON Response
-                       |
-             ┌─────────┴─────────┐
-             ↓                   ↓
-        Structured           Prometheus
-         Logging              Metrics
-
-Docker packages the application.
-Pytest tests the application.
-Git/GitHub manages the source code.
+Dataset
+  ↓
+Model Training
+  ↓
+Model Evaluation
+  ↓
+Model Serialization
+  ↓
+FastAPI Service
+  ↓
+Validation
+  ↓
+Security
+  ↓
+Logging
+  ↓
+Monitoring
+  ↓
+Automated Testing
+  ↓
+Integration Testing
+  ↓
+Load Testing
+  ↓
+Docker
+  ↓
+Cloud Deployment
 ```
 
-## 11. Future Tasks
+The final goal is a reproducible, tested, documented, and deployable Machine Learning API.
 
-The project will be developed incrementally:
-
-* Project understanding and architecture planning
-* Project folder structure and Python environment
-* Dataset preparation and exploratory analysis
-* Model training and evaluation
-* FastAPI implementation
-* Pydantic validation
-* API testing with Pytest
-* Dockerization
-* Structured logging
-* Prometheus monitoring
-* GitHub documentation and version control
-
-## 12. Goal
-
-The goal of this project is to demonstrate how a machine learning model can be transformed into a usable, testable, monitorable, and containerized REST API service.
-
+---
