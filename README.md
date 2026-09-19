@@ -154,55 +154,6 @@ The API returns:
 
 ---
 
-## Architecture
-
-```text
-                        Client
-                          |
-                          | HTTP Request
-                          v
-                  +------------------+
-                  |    FastAPI API   |
-                  +------------------+
-                          |
-                          v
-                  +------------------+
-                  | API Key Security |
-                  +------------------+
-                          |
-                          v
-                  +------------------+
-                  | Pydantic         |
-                  | Validation       |
-                  +------------------+
-                          |
-                          v
-                  +------------------+
-                  | API Router       |
-                  | /api/v1          |
-                  | /api/v2          |
-                  +------------------+
-                          |
-                          v
-                  +------------------+
-                  | Saved ML Pipeline|
-                  | / Model          |
-                  +------------------+
-                          |
-                          v
-                  +------------------+
-                  | Price Prediction |
-                  +------------------+
-                          |
-             +------------+-------------+
-             |                          |
-             v                          v
-      Structured Logs              Prometheus
-      logs/app.log                  /metrics
-```
-
----
-
 ## Project Structure
 
 ```text
